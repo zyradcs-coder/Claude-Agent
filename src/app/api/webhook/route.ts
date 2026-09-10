@@ -1,7 +1,7 @@
 import { NextRequest, after } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { sendWhatsAppMessage } from "@/lib/whatsapp";
-import { getAIResponse } from "@/lib/ai";
+import { sendWhatsAppMessage, downloadWhatsAppMedia } from "@/lib/whatsapp";
+import { getAIResponse, transcribeAudio } from "@/lib/ai";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -33,13 +33,15 @@ export async function POST(request: NextRequest) {
   if (!message) {
     return Response.json({ status: "no_message" });
   }
-  if (message.type !== "text") {
+  // Text and voice notes are handled; ignore other types (images, stickers…)
+  if (message.type !== "text" && message.type !== "audio") {
     return Response.json({ status: "non_text" });
   }
 
   const payload = {
     phone: message.from as string,
-    text: message.text.body as string,
+    text: message.type === "text" ? (message.text.body as string) : null,
+    audioId: message.type === "audio" ? (message.audio.id as string) : null,
     name: (value.contacts?.[0]?.profile?.name as string) || null,
     whatsappMsgId: message.id as string,
   };
@@ -54,15 +56,36 @@ export async function POST(request: NextRequest) {
 async function processMessage({
   phone,
   text,
+  audioId,
   name,
   whatsappMsgId,
 }: {
   phone: string;
-  text: string;
+  text: string | null;
+  audioId: string | null;
   name: string | null;
   whatsappMsgId: string;
 }) {
   try {
+    // Voice note: download and transcribe it into text
+    if (audioId) {
+      try {
+        const { base64, mimeType } = await downloadWhatsAppMedia(audioId);
+        text = await transcribeAudio(base64, mimeType);
+      } catch (err) {
+        console.error("Voice transcription failed:", err);
+      }
+      if (!text) {
+        await sendWhatsAppMessage(
+          phone,
+          "Sorry, I couldn't make out that voice message. Could you send it again or type it out?"
+        );
+        return;
+      }
+    }
+
+    if (!text) return;
+
     // Find or create conversation
     let { data: conversation } = await supabase
       .from("conversations")

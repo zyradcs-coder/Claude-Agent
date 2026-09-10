@@ -26,6 +26,48 @@ const defaultModel = usingGemini
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+// Transcribe a WhatsApp voice note. Gemini understands audio natively, so we
+// hit its native endpoint (the OpenAI-compat layer is text-only here).
+export async function transcribeAudio(
+  base64: string,
+  mimeType: string
+): Promise<string> {
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) throw new Error("GEMINI_API_KEY is required for voice messages");
+
+  const model = process.env.AI_MODEL || defaultModel;
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [
+              {
+                text: "Transcribe this voice message verbatim. Output only the spoken words, in the original language. If nothing intelligible is said, output nothing.",
+              },
+              { inline_data: { mime_type: mimeType.split(";")[0].trim(), data: base64 } },
+            ],
+          },
+        ],
+      }),
+    }
+  );
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(`Transcription failed: ${JSON.stringify(data)}`);
+  }
+  return (
+    data.candidates?.[0]?.content?.parts
+      ?.map((p: { text?: string }) => p.text || "")
+      .join("")
+      .trim() || ""
+  );
+}
+
 export async function getAIResponse(
   messages: { role: "user" | "assistant"; content: string }[]
 ) {
