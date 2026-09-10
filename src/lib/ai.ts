@@ -14,7 +14,7 @@ const config = {
   groq: {
     baseURL: "https://api.groq.com/openai/v1",
     apiKey: process.env.GROQ_API_KEY,
-    model: "llama-3.3-70b-versatile",
+    model: "openai/gpt-oss-120b",
   },
   gemini: {
     baseURL: "https://generativelanguage.googleapis.com/v1beta/openai",
