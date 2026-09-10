@@ -2,6 +2,7 @@ import { NextRequest, after } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { sendWhatsAppMessage, downloadWhatsAppMedia } from "@/lib/whatsapp";
 import { getAIResponse, transcribeAudio } from "@/lib/ai";
+import { logToSheet } from "@/lib/sheets";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -131,6 +132,15 @@ async function processMessage({
       .update({ updated_at: new Date().toISOString() })
       .eq("id", conversation.id);
 
+    // Log the inbound message to the Google Sheet
+    await logToSheet({
+      phone,
+      name: name ?? conversation.name ?? null,
+      direction: "inbound",
+      text,
+      status: conversation.mode === "human" ? "needs-human" : "bot",
+    });
+
     // If mode is 'human', don't auto-reply
     if (conversation.mode === "human") {
       return;
@@ -164,6 +174,16 @@ async function processMessage({
       .from("conversations")
       .update({ updated_at: new Date().toISOString() })
       .eq("id", conversation.id);
+
+    // Log the bot's reply to the Google Sheet (before send, so it's recorded
+    // even if WhatsApp delivery fails)
+    await logToSheet({
+      phone,
+      name: name ?? conversation.name ?? null,
+      direction: "outbound",
+      text: aiResponse,
+      status: "bot",
+    });
 
     // Send response via WhatsApp
     await sendWhatsAppMessage(phone, aiResponse);

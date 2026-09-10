@@ -89,9 +89,17 @@ export async function getAIResponse(
       throw new Error("Empty completion");
     } catch (error) {
       lastError = error;
-      const status = (error as { status?: number })?.status;
-      if (status === 429 || status === 503) {
-        await sleep(1500 * (attempt + 1));
+      const status = (error as { status?: number; code?: number })?.status;
+      const code = (error as { code?: number })?.code;
+      const msg = String((error as { message?: string })?.message || "");
+      const retriable =
+        status === 429 ||
+        status === 503 ||
+        code === 429 ||
+        code === 503 ||
+        /429|rate.?limit|quota|RESOURCE_EXHAUSTED|overloaded|unavailable/i.test(msg);
+      if (retriable && attempt < 3) {
+        await sleep(2000 * (attempt + 1));
         continue;
       }
       throw error;
