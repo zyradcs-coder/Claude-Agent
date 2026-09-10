@@ -1,8 +1,23 @@
 import { NextRequest, after } from "next/server";
+import { createHmac, timingSafeEqual } from "crypto";
 import { supabase } from "@/lib/supabase";
 import { sendWhatsAppMessage, downloadWhatsAppMedia } from "@/lib/whatsapp";
 import { getAIResponse, transcribeAudio } from "@/lib/ai";
 import { logToSheet } from "@/lib/sheets";
+
+// Verify Meta's X-Hub-Signature-256 header against the raw body.
+// Only enforced when WHATSAPP_APP_SECRET is set.
+function isValidSignature(rawBody: string, header: string | null): boolean {
+  const secret = process.env.WHATSAPP_APP_SECRET;
+  if (!secret) return true;
+  if (!header?.startsWith("sha256=")) return false;
+
+  const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
+  const received = header.slice("sha256=".length);
+  const a = Buffer.from(expected, "hex");
+  const b = Buffer.from(received, "hex");
+  return a.length === b.length && timingSafeEqual(a, b);
+}
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -18,7 +33,18 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
+  const rawBody = await request.text();
+
+  if (!isValidSignature(rawBody, request.headers.get("x-hub-signature-256"))) {
+    return new Response("Invalid signature", { status: 401 });
+  }
+
+  let body;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    return new Response("Bad request", { status: 400 });
+  }
 
   // Only process whatsapp_business_account events
   if (body.object !== "whatsapp_business_account") {
