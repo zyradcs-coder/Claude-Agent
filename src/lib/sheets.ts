@@ -14,7 +14,10 @@ export async function logToSheet(payload: {
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      // Apps Script mis-decodes UTF-8 request bodies sent as application/json
+      // (multi-byte characters like smart quotes/em-dashes come out mangled).
+      // text/plain is decoded correctly; the body is still parsed as JSON.
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
       body: JSON.stringify({
         type: "message",
         secret: process.env.SHEETS_WEBAPP_SECRET || "",
