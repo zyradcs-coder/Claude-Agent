@@ -32,8 +32,31 @@ function doPost(e) {
   }
 }
 
-function doGet() {
-  return json({ ok: true, service: 'zyra-whatsapp-sheets' });
+function doGet(e) {
+  var secret = e && e.parameter && e.parameter.secret;
+  if (secret !== SECRET) {
+    return json({ ok: true, service: 'zyra-whatsapp-sheets' });
+  }
+
+  // ?secret=... &status=1  -> row counts + the last few rows of each tab,
+  // so setup can be verified without opening the sheet.
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var out = { ok: true, sheetUrl: ss.getUrl(), tabs: {} };
+  ['Messages', 'Leads'].forEach(function (name) {
+    var sh = ss.getSheetByName(name);
+    if (!sh) {
+      out.tabs[name] = { exists: false };
+      return;
+    }
+    var values = sh.getDataRange().getValues();
+    out.tabs[name] = {
+      exists: true,
+      rowCount: Math.max(0, values.length - 1),
+      headers: values[0] || [],
+      lastRows: values.slice(Math.max(1, values.length - 5)),
+    };
+  });
+  return json(out);
 }
 
 function appendMessage(ss, b) {
