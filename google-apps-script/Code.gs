@@ -59,24 +59,34 @@ function doGet(e) {
   return json(out);
 }
 
+// Meta sends phone numbers as bare digits (e.g. "971547824637"). Sheets
+// auto-detects all-digit strings as numbers, which can lose formatting -
+// normalize to a "+"-prefixed WhatsApp-style string and force the column
+// to Plain text so it always displays exactly as typed.
+function formatPhone(phone) {
+  var digits = String(phone || '').replace(/[^\d]/g, '');
+  return digits ? '+' + digits : '';
+}
+
 function appendMessage(ss, b) {
   var sh = getOrCreate(ss, 'Messages', [
-    'Timestamp', 'Phone', 'Name', 'Direction', 'Message', 'Language',
+    'Timestamp', 'WhatsApp Number', 'Name', 'Direction', 'Message', 'Language',
   ]);
   sh.appendRow([
-    new Date(), b.phone || '', b.name || '', b.direction || '',
+    new Date(), formatPhone(b.phone), b.name || '', b.direction || '',
     b.text || '', b.language || '',
   ]);
 }
 
 function upsertLead(ss, b) {
   var sh = getOrCreate(ss, 'Leads', [
-    'First contact', 'Phone', 'Name', 'First message',
+    'First contact', 'WhatsApp Number', 'Name', 'First message',
     'Last activity', 'Status', 'Message count',
   ]);
+  var phone = formatPhone(b.phone);
   var rows = sh.getDataRange().getValues();
   for (var i = 1; i < rows.length; i++) {
-    if (String(rows[i][1]) === String(b.phone)) {
+    if (formatPhone(rows[i][1]) === phone) {
       if (b.name) sh.getRange(i + 1, 3).setValue(b.name);
       sh.getRange(i + 1, 5).setValue(new Date());
       if (b.status) sh.getRange(i + 1, 6).setValue(b.status);
@@ -85,7 +95,7 @@ function upsertLead(ss, b) {
     }
   }
   sh.appendRow([
-    new Date(), b.phone || '', b.name || '',
+    new Date(), phone, b.name || '',
     b.direction === 'inbound' ? (b.text || '') : '',
     new Date(), b.status || 'bot', 1,
   ]);
@@ -97,7 +107,13 @@ function getOrCreate(ss, name, headers) {
     sh = ss.insertSheet(name);
     sh.appendRow(headers);
     sh.setFrozenRows(1);
+  } else {
+    // Keep an already-existing sheet's header row in sync (e.g. renamed columns).
+    sh.getRange(1, 1, 1, headers.length).setValues([headers]);
   }
+  // Column 2 (WhatsApp Number) as Plain text for every row, so it never
+  // gets auto-converted to a number and never shows scientific notation.
+  sh.getRange(1, 2, Math.max(sh.getMaxRows(), 1000), 1).setNumberFormat('@');
   return sh;
 }
 
