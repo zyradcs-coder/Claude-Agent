@@ -3,8 +3,21 @@ export interface Conversation {
   phone: string;
   name: string | null;
   mode: "agent" | "human";
+  contact_id: string | null;
   updated_at: string;
   created_at: string;
+}
+
+export interface Contact {
+  id: string;
+  phone_number: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  tags: string[];
+  custom_fields: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Message {

@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { sendWhatsAppMessage, downloadWhatsAppMedia } from "@/lib/whatsapp";
 import { getAIResponse, transcribeAudio } from "@/lib/ai";
 import { logToSheet } from "@/lib/sheets";
+import { upsertContact } from "@/lib/contacts";
 
 // Verify Meta's X-Hub-Signature-256 header against the raw body.
 // Only enforced when WHATSAPP_APP_SECRET is set.
@@ -113,6 +114,14 @@ async function processMessage({
 
     if (!text) return;
 
+    // Dedup into Contact Hub (matches by normalized phone across channels).
+    // Non-fatal: if the contacts table/migration isn't in place yet, the
+    // conversation still gets created and the AI still replies.
+    const contact = await upsertContact(phone, name).catch((err) => {
+      console.error("Contact upsert failed:", err);
+      return null;
+    });
+
     // Find or create conversation
     let { data: conversation } = await supabase
       .from("conversations")
@@ -123,11 +132,19 @@ async function processMessage({
     if (!conversation) {
       const { data: newConvo } = await supabase
         .from("conversations")
-        .insert({ phone, name })
+        .insert({ phone, name, contact_id: contact?.id ?? null })
         .select()
         .single();
       conversation = newConvo;
-    } else if (name && name !== conversation.name) {
+    } else if (!conversation.contact_id && contact) {
+      await supabase
+        .from("conversations")
+        .update({ contact_id: contact.id })
+        .eq("id", conversation.id);
+      conversation.contact_id = contact.id;
+    }
+
+    if (conversation && name && name !== conversation.name) {
       await supabase
         .from("conversations")
         .update({ name })
