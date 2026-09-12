@@ -293,6 +293,9 @@ export default function Dashboard() {
             <Link href="/settings" className="text-[11px] text-white/40 hover:text-emerald-400">
               Settings →
             </Link>
+            <Link href="/analytics" className="text-[11px] text-white/40 hover:text-emerald-400">
+              Analytics →
+            </Link>
           </div>
         </div>
 
