@@ -1,5 +1,6 @@
 import { supabase } from "@/lib/supabase";
 import { normalizePhone } from "@/lib/phone";
+import { runNewContactAutomations } from "@/lib/automations";
 import type { Contact } from "@/lib/types";
 
 // Find a contact by phone (any format - normalized before lookup), or
@@ -46,5 +47,8 @@ export async function upsertContact(
     return raced ?? null;
   }
 
+  runNewContactAutomations(created).catch((err) =>
+    console.error("new_contact automations failed:", err)
+  );
   return created;
 }

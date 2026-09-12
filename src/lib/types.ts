@@ -84,3 +84,28 @@ export interface Deal {
 export interface DealWithContact extends Deal {
   contact: Pick<Contact, "id" | "phone_number" | "first_name" | "last_name"> | null;
 }
+
+export type TriggerType = "new_contact" | "keyword" | "conversation_idle";
+export type ActionType = "apply_tag" | "assign_agent" | "send_message" | "move_stage";
+
+export interface Automation {
+  id: string;
+  name: string;
+  trigger_type: TriggerType;
+  trigger_config: Record<string, unknown>;
+  action_type: ActionType;
+  action_config: Record<string, unknown>;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AutomationRun {
+  id: string;
+  automation_id: string;
+  conversation_id: string | null;
+  contact_id: string | null;
+  status: "success" | "error" | "skipped";
+  detail: string | null;
+  created_at: string;
+}

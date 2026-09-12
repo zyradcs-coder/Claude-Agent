@@ -266,9 +266,14 @@ export default function Dashboard() {
               <p className="text-xs text-white/40 leading-tight mt-0.5">{visibleConversations.length} conversation{visibleConversations.length !== 1 ? "s" : ""}</p>
             </div>
           </div>
-          <Link href="/pipelines" className="text-[11px] text-white/40 hover:text-emerald-400 mt-2 inline-block">
-            Pipelines →
-          </Link>
+          <div className="flex gap-3 mt-2">
+            <Link href="/pipelines" className="text-[11px] text-white/40 hover:text-emerald-400">
+              Pipelines →
+            </Link>
+            <Link href="/automations" className="text-[11px] text-white/40 hover:text-emerald-400">
+              Automations →
+            </Link>
+          </div>
         </div>
 
         {/* Status Tabs */}

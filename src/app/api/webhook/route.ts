@@ -5,6 +5,7 @@ import { sendWhatsAppMessage, downloadWhatsAppMedia } from "@/lib/whatsapp";
 import { getAIResponse, transcribeAudio } from "@/lib/ai";
 import { logToSheet } from "@/lib/sheets";
 import { upsertContact } from "@/lib/contacts";
+import { runKeywordAutomations } from "@/lib/automations";
 
 // Verify Meta's X-Hub-Signature-256 header against the raw body.
 // Only enforced when WHATSAPP_APP_SECRET is set.
@@ -185,6 +186,14 @@ async function processMessage({
       text,
       status: conversation.mode === "human" ? "needs-human" : "bot",
     });
+
+    // Keyword-triggered automations (apply tag, assign agent, auto-reply, move stage)
+    await runKeywordAutomations(text, {
+      conversationId: conversation.id,
+      contactId: contact?.id ?? conversation.contact_id ?? null,
+      phone,
+      name: name ?? conversation.name ?? null,
+    }).catch((err) => console.error("keyword automations failed:", err));
 
     // If mode is 'human', don't auto-reply
     if (conversation.mode === "human") {

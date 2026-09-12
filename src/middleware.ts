@@ -2,8 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Protect every route except /login, the webhook (Meta calls it, no user
-// session), and Next's own static/image assets.
-const PUBLIC_PATHS = ["/login", "/api/webhook"];
+// session), Vercel Cron (checked by CRON_SECRET instead), and Next's own
+// static/image assets.
+const PUBLIC_PATHS = ["/login", "/api/webhook", "/api/cron"];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
