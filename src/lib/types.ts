@@ -100,6 +100,38 @@ export interface Automation {
   updated_at: string;
 }
 
+export interface Broadcast {
+  id: string;
+  name: string;
+  template_name: string;
+  template_language: string;
+  variable_mapping: Record<string, string>;
+  segment_tag: string | null;
+  scheduled_at: string | null;
+  status: "draft" | "scheduled" | "sending" | "completed" | "failed";
+  total: number;
+  sent: number;
+  delivered: number;
+  read: number;
+  failed: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BroadcastRecipient {
+  id: string;
+  broadcast_id: string;
+  contact_id: string | null;
+  phone: string;
+  status: "pending" | "sent" | "delivered" | "read" | "failed";
+  whatsapp_msg_id: string | null;
+  error: string | null;
+  sent_at: string | null;
+  delivered_at: string | null;
+  read_at: string | null;
+  created_at: string;
+}
+
 export interface AutomationRun {
   id: string;
   automation_id: string;

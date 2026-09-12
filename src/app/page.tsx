@@ -273,6 +273,9 @@ export default function Dashboard() {
             <Link href="/automations" className="text-[11px] text-white/40 hover:text-emerald-400">
               Automations →
             </Link>
+            <Link href="/broadcasts" className="text-[11px] text-white/40 hover:text-emerald-400">
+              Broadcasts →
+            </Link>
           </div>
         </div>
 

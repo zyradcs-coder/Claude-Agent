@@ -7,6 +7,53 @@ import { logToSheet } from "@/lib/sheets";
 import { upsertContact } from "@/lib/contacts";
 import { runKeywordAutomations } from "@/lib/automations";
 
+const STATUS_RANK: Record<string, number> = { sent: 1, delivered: 2, read: 3, failed: 4 };
+
+// Meta delivery-status callbacks (sent/delivered/read/failed) for messages
+// this app sent - currently only broadcast recipients are tracked by
+// whatsapp_msg_id, so unmatched statuses (e.g. AI replies) are no-ops.
+async function updateBroadcastStatuses(
+  statuses: Array<{ id: string; status: string; timestamp?: string }>
+) {
+  for (const s of statuses) {
+    const { data: recipient } = await supabase
+      .from("broadcast_recipients")
+      .select("id, broadcast_id, status")
+      .eq("whatsapp_msg_id", s.id)
+      .single();
+    if (!recipient) continue;
+
+    const newRank = STATUS_RANK[s.status] || 0;
+    const currentRank = STATUS_RANK[recipient.status] || 0;
+    if (newRank <= currentRank) continue; // ignore out-of-order/duplicate callbacks
+
+    const timestampField =
+      s.status === "delivered" ? "delivered_at" : s.status === "read" ? "read_at" : null;
+    await supabase
+      .from("broadcast_recipients")
+      .update({
+        status: s.status,
+        ...(timestampField ? { [timestampField]: new Date().toISOString() } : {}),
+      })
+      .eq("id", recipient.id);
+
+    if (s.status === "delivered" || s.status === "read") {
+      const { data: broadcast } = await supabase
+        .from("broadcasts")
+        .select("delivered, read")
+        .eq("id", recipient.broadcast_id)
+        .single();
+      const current: number = (broadcast as { delivered: number; read: number } | null)?.[
+        s.status as "delivered" | "read"
+      ] || 0;
+      await supabase
+        .from("broadcasts")
+        .update({ [s.status]: current + 1 })
+        .eq("id", recipient.broadcast_id);
+    }
+  }
+}
+
 // Verify Meta's X-Hub-Signature-256 header against the raw body.
 // Only enforced when WHATSAPP_APP_SECRET is set.
 function isValidSignature(rawBody: string, header: string | null): boolean {
@@ -57,6 +104,12 @@ export async function POST(request: NextRequest) {
   const changes = entry?.changes?.[0];
   const value = changes?.value;
   const message = value?.messages?.[0];
+  const statuses = value?.statuses;
+
+  if (statuses?.length) {
+    after(() => updateBroadcastStatuses(statuses));
+    return Response.json({ status: "status_update" });
+  }
 
   // Only process actual text messages (not status updates or other types)
   if (!message) {
