@@ -51,3 +51,36 @@ export interface Message {
 export interface ConversationWithLastMessage extends Conversation {
   last_message: string | null;
 }
+
+export interface Pipeline {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+export interface PipelineStage {
+  id: string;
+  pipeline_id: string;
+  name: string;
+  order_weight: number;
+  is_won: boolean;
+  is_lost: boolean;
+  created_at: string;
+}
+
+export interface Deal {
+  id: string;
+  pipeline_id: string;
+  stage_id: string;
+  contact_id: string | null;
+  title: string;
+  value: number;
+  currency: string;
+  expected_close_date: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DealWithContact extends Deal {
+  contact: Pick<Contact, "id" | "phone_number" | "first_name" | "last_name"> | null;
+}

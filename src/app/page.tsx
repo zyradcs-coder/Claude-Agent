@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import Link from "next/link";
 import { createBrowserClient } from "@supabase/ssr";
 import type { ConversationWithLastMessage, Message, Profile, InternalNote } from "@/lib/types";
 
@@ -265,6 +266,9 @@ export default function Dashboard() {
               <p className="text-xs text-white/40 leading-tight mt-0.5">{visibleConversations.length} conversation{visibleConversations.length !== 1 ? "s" : ""}</p>
             </div>
           </div>
+          <Link href="/pipelines" className="text-[11px] text-white/40 hover:text-emerald-400 mt-2 inline-block">
+            Pipelines →
+          </Link>
         </div>
 
         {/* Status Tabs */}
