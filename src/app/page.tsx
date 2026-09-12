@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 import type { ConversationWithLastMessage, Message } from "@/lib/types";
 
 export default function Dashboard() {
+  // @supabase/ssr's browser client attaches the logged-in user's session
+  // (from the auth cookie middleware.ts already verified) to every request,
+  // so RLS policies scoped to the "authenticated" role pass.
   const supabase = useMemo(() => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
     if (!url || !key) return null;
-    return createClient(url, key);
+    return createBrowserClient(url, key);
   }, []);
 
   const [conversations, setConversations] = useState<ConversationWithLastMessage[]>([]);
