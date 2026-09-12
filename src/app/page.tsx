@@ -261,44 +261,33 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-[#0f0f0f] font-sans">
-      {/* Sidebar */}
-      <div className="w-[320px] flex flex-col border-r border-white/[0.06]" style={{ background: "#141414" }}>
-        {/* Sidebar Header */}
-        <div className="px-5 py-4 border-b border-white/[0.06]">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-sm font-semibold text-white leading-tight">Shared Inbox</h1>
-              <p className="text-xs text-white/40 leading-tight mt-0.5">{visibleConversations.length} conversation{visibleConversations.length !== 1 ? "s" : ""}</p>
-            </div>
+    <div className="flex flex-col h-screen bg-[#0f0f0f] font-sans">
+      {/* Top Bar - spans full width, keeps module nav out of the narrow sidebar */}
+      <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06] flex-shrink-0" style={{ background: "#141414" }}>
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
           </div>
-          <div className="flex gap-3 mt-2">
-            <Link href="/pipelines" className="text-[11px] text-white/40 hover:text-emerald-400">
-              Pipelines →
-            </Link>
-            <Link href="/automations" className="text-[11px] text-white/40 hover:text-emerald-400">
-              Automations →
-            </Link>
-            <Link href="/broadcasts" className="text-[11px] text-white/40 hover:text-emerald-400">
-              Broadcasts →
-            </Link>
-            <Link href="/knowledge" className="text-[11px] text-white/40 hover:text-emerald-400">
-              Knowledge →
-            </Link>
-            <Link href="/settings" className="text-[11px] text-white/40 hover:text-emerald-400">
-              Settings →
-            </Link>
-            <Link href="/analytics" className="text-[11px] text-white/40 hover:text-emerald-400">
-              Analytics →
-            </Link>
+          <div>
+            <h1 className="text-sm font-semibold text-white leading-tight">Shared Inbox</h1>
+            <p className="text-xs text-white/40 leading-tight mt-0.5">{visibleConversations.length} conversation{visibleConversations.length !== 1 ? "s" : ""}</p>
           </div>
         </div>
+        <div className="flex gap-4">
+          <Link href="/pipelines" className="text-xs text-white/40 hover:text-emerald-400">Pipelines</Link>
+          <Link href="/automations" className="text-xs text-white/40 hover:text-emerald-400">Automations</Link>
+          <Link href="/broadcasts" className="text-xs text-white/40 hover:text-emerald-400">Broadcasts</Link>
+          <Link href="/knowledge" className="text-xs text-white/40 hover:text-emerald-400">Knowledge</Link>
+          <Link href="/settings" className="text-xs text-white/40 hover:text-emerald-400">Settings</Link>
+          <Link href="/analytics" className="text-xs text-white/40 hover:text-emerald-400">Analytics</Link>
+        </div>
+      </div>
 
+      <div className="flex flex-1 min-h-0">
+      {/* Sidebar */}
+      <div className="w-[320px] flex flex-col border-r border-white/[0.06]" style={{ background: "#141414" }}>
         {/* Status Tabs */}
         <div className="flex gap-1 px-3 py-2 border-b border-white/[0.06]">
           {STATUS_TABS.map((s) => (
@@ -613,6 +602,7 @@ export default function Dashboard() {
             )}
           </>
         )}
+      </div>
       </div>
     </div>
   );
