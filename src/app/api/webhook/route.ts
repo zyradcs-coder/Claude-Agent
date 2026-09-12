@@ -161,6 +161,7 @@ async function processMessage({
       conversation_id: conversation.id,
       role: "user",
       content: text,
+      sender_type: "customer",
       whatsapp_msg_id: whatsappMsgId,
     });
 
@@ -169,10 +170,11 @@ async function processMessage({
       return;
     }
 
-    // Update conversation timestamp
+    // A new customer message reopens a pending/closed conversation so it
+    // resurfaces in the shared inbox.
     await supabase
       .from("conversations")
-      .update({ updated_at: new Date().toISOString() })
+      .update({ updated_at: new Date().toISOString(), status: "open" })
       .eq("id", conversation.id);
 
     // Log the inbound message to the Google Sheet
@@ -210,6 +212,7 @@ async function processMessage({
       conversation_id: conversation.id,
       role: "assistant",
       content: aiResponse,
+      sender_type: "system",
     });
 
     // Update conversation timestamp again

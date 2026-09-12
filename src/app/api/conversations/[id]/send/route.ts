@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { sendWhatsAppMessage } from "@/lib/whatsapp";
+import { createClient } from "@/lib/supabase-server";
 
 export async function POST(
   request: NextRequest,
@@ -9,6 +10,11 @@ export async function POST(
   const { id } = await params;
   const body = await request.json();
   const { message } = body;
+
+  const authClient = await createClient();
+  const {
+    data: { user },
+  } = await authClient.auth.getUser();
 
   if (!message?.trim()) {
     return Response.json({ error: "Message is required" }, { status: 400 });
@@ -35,6 +41,8 @@ export async function POST(
       conversation_id: id,
       role: "assistant",
       content: message,
+      sender_type: "agent",
+      sender_id: user?.id ?? null,
     })
     .select()
     .single();

@@ -4,7 +4,24 @@ export interface Conversation {
   name: string | null;
   mode: "agent" | "human";
   contact_id: string | null;
+  status: "open" | "pending" | "closed";
+  assigned_agent_id: string | null;
   updated_at: string;
+  created_at: string;
+}
+
+export interface Profile {
+  id: string;
+  email: string | null;
+  display_name: string | null;
+  created_at: string;
+}
+
+export interface InternalNote {
+  id: string;
+  conversation_id: string;
+  agent_id: string | null;
+  body: string;
   created_at: string;
 }
 
@@ -25,6 +42,8 @@ export interface Message {
   conversation_id: string;
   role: "user" | "assistant";
   content: string;
+  sender_type: "customer" | "agent" | "system";
+  sender_id: string | null;
   whatsapp_msg_id: string | null;
   created_at: string;
 }

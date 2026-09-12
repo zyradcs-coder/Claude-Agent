@@ -11,10 +11,18 @@ export async function PATCH(
   if (body.mode && !["agent", "human"].includes(body.mode)) {
     return Response.json({ error: "Invalid mode" }, { status: 400 });
   }
+  if (body.status && !["open", "pending", "closed"].includes(body.status)) {
+    return Response.json({ error: "Invalid status" }, { status: 400 });
+  }
+
+  const update: Record<string, unknown> = {};
+  if ("mode" in body) update.mode = body.mode;
+  if ("status" in body) update.status = body.status;
+  if ("assigned_agent_id" in body) update.assigned_agent_id = body.assigned_agent_id;
 
   const { data, error } = await supabase
     .from("conversations")
-    .update({ mode: body.mode })
+    .update(update)
     .eq("id", id)
     .select()
     .single();
