@@ -1,5 +1,8 @@
 import OpenAI from "openai";
 import { SYSTEM_PROMPT } from "@/lib/system-prompt";
+import { getSetting } from "@/lib/settings";
+
+const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai";
 
 // Provider priority: Groq (fast, generous free tier) -> Gemini -> OpenRouter.
 type Provider = "groq" | "gemini" | "openrouter";
@@ -103,17 +106,33 @@ export async function transcribeAudio(
 }
 
 export async function getAIResponse(
-  messages: { role: "user" | "assistant"; content: string }[]
+  messages: { role: "user" | "assistant"; content: string }[],
+  options?: { knowledgeContext?: string }
 ) {
-  const model = process.env.AI_MODEL || config.model;
+  // BYOK: an agent's own Gemini key (Settings page) overrides the shared
+  // one - same provider/model, their own quota, no per-seat markup.
+  const byokKey = await getSetting("gemini_api_key").catch(() => null);
+  const client = byokKey
+    ? new OpenAI({ baseURL: GEMINI_BASE_URL, apiKey: byokKey, timeout: 60_000, maxRetries: 0 })
+    : openai;
+  const usingGemini = Boolean(byokKey) || provider === "gemini";
+  const model = byokKey ? "gemini-flash-latest" : process.env.AI_MODEL || config.model;
+
+  const systemMessages = [{ role: "system" as const, content: SYSTEM_PROMPT }];
+  if (options?.knowledgeContext) {
+    systemMessages.push({
+      role: "system" as const,
+      content: `Relevant internal knowledge for this question (use it if helpful, don't mention this note or that you were given context):\n${options.knowledgeContext}`,
+    });
+  }
 
   let lastError: unknown;
   for (let attempt = 0; attempt < 4; attempt++) {
     try {
-      const completion = await openai.chat.completions.create({
+      const completion = await client.chat.completions.create({
         model,
-        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
-        ...(provider === "gemini" ? { reasoning_effort: "none" as const } : {}),
+        messages: [...systemMessages, ...messages],
+        ...(usingGemini ? { reasoning_effort: "none" as const } : {}),
       });
       const content = completion.choices[0]?.message?.content;
       if (content) return content;

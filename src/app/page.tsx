@@ -23,6 +23,7 @@ export default function Dashboard() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [suggesting, setSuggesting] = useState(false);
   const [sending, setSending] = useState(false);
   const [statusTab, setStatusTab] = useState<StatusTab>("open");
 
@@ -221,6 +222,16 @@ export default function Dashboard() {
     fetchMessages(selectedId);
   }
 
+  async function suggestReply() {
+    if (!selectedId) return;
+    setSuggesting(true);
+    const res = await fetch(`/api/conversations/${selectedId}/suggest`, { method: "POST" });
+    const data = await res.json();
+    setSuggesting(false);
+    if (res.ok && data.draft) setInput(data.draft);
+    else alert(data.error || "Couldn't generate a suggestion");
+  }
+
   async function handleAddNote() {
     if (!noteInput.trim() || !selectedId) return;
     const body = noteInput.trim();
@@ -275,6 +286,12 @@ export default function Dashboard() {
             </Link>
             <Link href="/broadcasts" className="text-[11px] text-white/40 hover:text-emerald-400">
               Broadcasts →
+            </Link>
+            <Link href="/knowledge" className="text-[11px] text-white/40 hover:text-emerald-400">
+              Knowledge →
+            </Link>
+            <Link href="/settings" className="text-[11px] text-white/40 hover:text-emerald-400">
+              Settings →
             </Link>
           </div>
         </div>
@@ -512,6 +529,15 @@ export default function Dashboard() {
 
                 {/* Input Bar */}
                 <div className="px-6 py-4 border-t border-white/[0.06]" style={{ background: "#141414" }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <button
+                      onClick={suggestReply}
+                      disabled={suggesting}
+                      className="text-[11px] px-2.5 py-1 rounded-md bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 border border-emerald-500/20 disabled:opacity-50"
+                    >
+                      {suggesting ? "Thinking…" : "✨ Suggest reply"}
+                    </button>
+                  </div>
                   <div className="flex items-center gap-3 bg-white/[0.06] rounded-xl px-4 py-2.5 border border-white/[0.06] focus-within:border-emerald-500/40 transition-colors">
                     <input
                       type="text"

@@ -85,6 +85,14 @@ export interface DealWithContact extends Deal {
   contact: Pick<Contact, "id" | "phone_number" | "first_name" | "last_name"> | null;
 }
 
+export interface KnowledgeDocument {
+  id: string;
+  name: string;
+  source_type: "paste" | "upload";
+  chunk_count: number;
+  created_at: string;
+}
+
 export type TriggerType = "new_contact" | "keyword" | "conversation_idle";
 export type ActionType = "apply_tag" | "assign_agent" | "send_message" | "move_stage";
 

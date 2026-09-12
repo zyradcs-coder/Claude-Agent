@@ -6,6 +6,12 @@ import { getAIResponse, transcribeAudio } from "@/lib/ai";
 import { logToSheet } from "@/lib/sheets";
 import { upsertContact } from "@/lib/contacts";
 import { runKeywordAutomations } from "@/lib/automations";
+import { retrieveContext } from "@/lib/rag";
+
+// Simple heuristic: customer explicitly asking for a person. Not
+// exhaustive by design - a false negative just means the bot answers
+// (fine); a false positive just hands off a bit early (also fine).
+const HUMAN_REQUEST = /\b(human|agent|representative|real person|talk to (a |someone)|speak to (a |someone))\b/i;
 
 const STATUS_RANK: Record<string, number> = { sent: 1, delivered: 2, read: 3, failed: 4 };
 
@@ -248,6 +254,16 @@ async function processMessage({
       name: name ?? conversation.name ?? null,
     }).catch((err) => console.error("keyword automations failed:", err));
 
+    // Customer explicitly asked for a person - hand off instead of replying.
+    if (HUMAN_REQUEST.test(text)) {
+      await supabase.from("conversations").update({ mode: "human" }).eq("id", conversation.id);
+      await supabase.from("internal_notes").insert({
+        conversation_id: conversation.id,
+        body: "Customer asked to speak with a human - bot paused automatically.",
+      });
+      return;
+    }
+
     // If mode is 'human', don't auto-reply
     if (conversation.mode === "human") {
       return;
@@ -261,12 +277,16 @@ async function processMessage({
       .order("created_at", { ascending: true })
       .limit(20);
 
+    // RAG: ground the reply in the uploaded knowledge base, if any matches
+    const knowledgeContext = await retrieveContext(text).catch(() => "");
+
     // Get AI response
     const aiResponse = await getAIResponse(
       (history || []).map((m) => ({
         role: m.role as "user" | "assistant",
         content: m.content,
-      }))
+      })),
+      { knowledgeContext }
     );
 
     // Store AI response first so it shows in the dashboard even if delivery fails
